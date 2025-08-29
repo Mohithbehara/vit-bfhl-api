@@ -3,13 +3,16 @@
   "version": "1.0.0",
   "description": "VIT Full Stack BFHL API \u2014 Express implementation",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js"
   },
   "engines": {
     "node": ">=18"
   },
-  "dependencies": {
-    "express": "^4.19.2"
+"dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0"
   }
 }
