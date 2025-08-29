@@ -1,122 +1,112 @@
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
+dotenv.config();
 
-const express = require('express');
 const app = express();
+const port = process.env.PORT || 3000;  
 
-app.use(express.json());
+app.use(cors());
+app.use(express.json())
 
-function makeUserId() {
-  const fullName = (process.env.FULL_NAME || "your_full_name").toLowerCase().replace(/\s+/g, "_");
-  const dob = (process.env.DOB_DDMMYYYY || "ddmmyyyy"); // e.g., 17091999
-  return `${fullName}_${dob}`;
+const USER_DETAILS = {
+    full_name: "john_doe", 
+    birth_date: "17091999",
+    email: "john@xyz.com",
+    roll_number: "ABCD123" 
+};
+
+function isNumber(str) {
+    return !isNaN(str) && !isNaN(parseFloat(str)) && isFinite(str);
 }
 
-function classifyAndCompute(data) {
-  const even_numbers = [];
-  const odd_numbers = [];
-  const alphabets = [];
-  const special_characters = [];
-  let sum = 0;
-  const allLetters = [];
+function isAlphabet(str) {
+    return /^[a-zA-Z]+$/.test(str);
+}
 
-  for (const item of data) {
-    const s = String(item);
+function isSpecialCharacter(str) {
+    return /[^a-zA-Z0-9]/.test(str) && !isNumber(str);
+}
+
+function createAlternatingCaps(alphabets) {
+    const allAlphabets = alphabets.join('').split('').reverse();
     
-    // Extract all letters from the item for concatenation
-    const lettersInItem = s.match(/[A-Za-z]/g);
-    if (lettersInItem) {
-      allLetters.push(...lettersInItem);
+    let result = '';
+    for (let i = 0; i < allAlphabets.length; i++) {
+        if (i % 2 === 0) {
+            result += allAlphabets[i].toUpperCase();
+        } else {
+            result += allAlphabets[i].toLowerCase();
+        }
     }
-
-    // Classify the item
-    if (/^[A-Za-z]$/.test(s)) {
-      // Single alphabetic character
-      alphabets.push(s.toUpperCase());
-    } else if (/^-?\d+$/.test(s)) {
-      // Numeric string (positive or negative integer)
-      const n = parseInt(s, 10);
-      if (n % 2 === 0) {
-        even_numbers.push(s);
-      } else {
-        odd_numbers.push(s);
-      }
-      sum += n;
-    } else {
-      // Everything else is treated as special characters
-      special_characters.push(s);
-    }
-  }
-
-  // Concatenation of all alphabetical characters in reverse order with alternating caps
-  const reversedLetters = allLetters.reverse();
-  const concat_string = reversedLetters.map((ch, idx) => 
-    (idx % 2 === 0) ? ch.toUpperCase() : ch.toLowerCase()
-  ).join('');
-
-  return {
-    even_numbers,
-    odd_numbers,
-    alphabets,
-    special_characters,
-    sum: String(sum),
-    concat_string
-  };
+    return result;
 }
 
-app.get('/bfhl', (req, res) => {
-  return res.status(200).json({
-    operation_code: 1
-  });
+
+app.get('/', (req, res) => {
+  res.send('Mohith ka API!');
 });
 
 app.post('/bfhl', (req, res) => {
-  try {
-    const payload = req.body;
-    if (!payload || !Array.isArray(payload.data)) {
-      return res.status(200).json({
-        is_success: false,
-        user_id: makeUserId(),
-        email: process.env.EMAIL || "your_email@example.com",
-        roll_number: process.env.ROLL_NUMBER || "YOUR_ROLL_NUMBER",
-        odd_numbers: [],
-        even_numbers: [],
-        alphabets: [],
-        special_characters: [],
-        sum: "0",
-        concat_string: ""
-      });
-    }
-    const { even_numbers, odd_numbers, alphabets, special_characters, sum, concat_string } =
-      classifyAndCompute(payload.data);
+    try {
+        if (!req.body || !Array.isArray(req.body.data)) {
+            return res.status(400).json({
+                is_success: false,
+                error: "Invalid Input"
+            });
+        }
 
-    return res.status(200).json({
-      is_success: true,
-      user_id: makeUserId(),
-      email: process.env.EMAIL || "your_email@example.com",
-      roll_number: process.env.ROLL_NUMBER || "YOUR_ROLL_NUMBER",
-      odd_numbers,
-      even_numbers,
-      alphabets,
-      special_characters,
-      sum,
-      concat_string
-    });
-  } catch (e) {
-    return res.status(200).json({
-      is_success: false,
-      user_id: makeUserId(),
-      email: process.env.EMAIL || "your_email@example.com",
-      roll_number: process.env.ROLL_NUMBER || "YOUR_ROLL_NUMBER",
-      odd_numbers: [],
-      even_numbers: [],
-      alphabets: [],
-      special_characters: [],
-      sum: "0",
-      concat_string: ""
-    });
-  }
+        const { data } = req.body;
+        const odd_numbers = [];
+        const even_numbers = [];
+        const alphabets = [];
+        const special_characters = [];
+        let sum = 0;
+        data.forEach(item => {
+            const str = String(item);
+            
+            if (isNumber(str)) {
+                const num = parseInt(str, 10);
+                sum += num;
+                
+                if (num % 2 === 0) {
+                    even_numbers.push(str);
+                } else {
+                    odd_numbers.push(str);
+                }
+            } else if (isAlphabet(str)) {
+                alphabets.push(str.toUpperCase());
+            } else if (isSpecialCharacter(str)) {
+                special_characters.push(str);
+            }
+        });
+
+        const concat_string = createAlternatingCaps(alphabets);
+        const user_id = ${USER_DETAILS.full_name}_${USER_DETAILS.birth_date};
+        const response = {
+            is_success: true,
+            user_id: user_id,
+            email: USER_DETAILS.email,
+            roll_number: USER_DETAILS.roll_number,
+            odd_numbers: odd_numbers,
+            even_numbers: even_numbers,
+            alphabets: alphabets,
+            special_characters: special_characters,
+            sum: sum.toString(),
+            concat_string: concat_string
+        };
+
+        res.status(200).json(response);
+
+    } catch (error) {
+        console.error('Error processing request:', error);
+        res.status(500).json({
+            is_success: false,
+            error: "Internal server error"
+        });
+    }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
+app.listen(port, () => {    
+  console.log(listening at http://localhost:${port});
 });
